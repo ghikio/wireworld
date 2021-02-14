@@ -3,13 +3,26 @@
 
 extern crate sdl2;
 
+use sdl2::rect;
+use sdl2::render;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use std::time::Duration;
 
-const ROWS_SIZE: usize = 400;
-const COLS_SIZE: usize = 400;
+const SDL2_WIN_TITLE: &str = "Wireworld";
+const SDL2_WIN_WIDTH:  u32 = 1024;
+const SDL2_WIN_HEIGHT: u32 = 1024;
+
+/// Indicates how many cells must be rendered in a row
+const CELLS_PER_ROW: usize = 16;
+/// Indicates how many cells must be rendered in a column
+const CELLS_PER_COL: usize = 16;
+
+/// Indicates the width that each cell must have
+const CELL_WIDTH:  u32 = SDL2_WIN_WIDTH  / CELLS_PER_ROW as u32;
+/// Indicates the height that each cell must have
+const CELL_HEIGHT: u32 = SDL2_WIN_HEIGHT / CELLS_PER_COL as u32;
 
 /// Describes the states in which a `Map` can be
 enum MapState
@@ -64,11 +77,42 @@ pub struct Map {
 impl Map {
     pub fn new() -> Self {
 	Map {
-	    cells: vec![ Cell::new(); ROWS_SIZE * COLS_SIZE ],
-	    mrows: ROWS_SIZE,
-	    mcols: COLS_SIZE,
+	    cells: vec![ Cell::new(); CELLS_PER_ROW * CELLS_PER_COL ],
+	    mrows: CELLS_PER_ROW,
+	    mcols: CELLS_PER_COL,
 	    state: MapState::Running }
     }
+}
+
+pub fn render(canvas: &mut render::WindowCanvas)
+{
+    canvas.set_draw_color(Color::RGB(0, 0, 0));
+    canvas.clear();
+
+    canvas.set_draw_color(Color::RGB(255, 255, 0));
+
+    let init_width_per_cell = (0..SDL2_WIN_WIDTH)
+	.filter(|y| y % CELL_WIDTH == 0)
+	.take(CELLS_PER_ROW)
+	.collect::<Vec<u32>>();
+
+    let init_height_per_cell = (0..SDL2_WIN_HEIGHT)
+	.filter(|x| x % CELL_HEIGHT == 0)
+	.take(CELLS_PER_COL)
+	.collect::<Vec<u32>>();
+
+    for y in &init_width_per_cell {
+	canvas.draw_line(rect::Point::new(0, *y as i32), rect::Point::new(SDL2_WIN_WIDTH as i32, *y as i32))
+	    .expect(&format!("couldn't draw line: ({},{}) -> ({},{})", 0, y, SDL2_WIN_WIDTH, y));
+    }
+
+    for x in &init_height_per_cell {
+	canvas.draw_line(rect::Point::new(*x as i32, 0), rect::Point::new(*x as i32, SDL2_WIN_HEIGHT as i32))
+	    .expect(&format!("couldn't draw line: ({},{}) -> ({},{})", x, 0, x, SDL2_WIN_HEIGHT));
+    }
+
+    // updates the screen with changes since the last call
+    canvas.present();
 }
 
 pub fn run_sdl()
@@ -76,22 +120,15 @@ pub fn run_sdl()
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let window = video_subsystem.window("rust-sdl2 demo", 800, 600)
+    let window = video_subsystem.window(SDL2_WIN_TITLE, SDL2_WIN_WIDTH, SDL2_WIN_HEIGHT)
                                 .position_centered()
                                 .build()
                                 .unwrap();
 
-    let mut canvas = window.into_canvas().build().unwrap();
-
-    canvas.set_draw_color(Color::RGB(0, 255, 255));
-    canvas.clear();
-    canvas.present();
+    let mut canvas     = window.into_canvas().build().unwrap();
     let mut event_pump = sdl_context.event_pump().unwrap();
-    let mut i = 0;
+
     'running: loop {
-        i = (i + 1) % 255;
-        canvas.set_draw_color(Color::RGB(i, 64, 255 - i));
-        canvas.clear();
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
@@ -102,7 +139,7 @@ pub fn run_sdl()
         }
         // The rest of the game loop goes here...
 
-        canvas.present();
+	render(&mut canvas);
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
 }
