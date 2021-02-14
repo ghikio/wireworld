@@ -1,0 +1,6 @@
+brace_style                         = "AlwaysNextLine"
+struct_field_align_threshold        = 100
+enum_discrim_align_threshold        = 100
+indent_style                        = "Visual"
+normalize_comments                  = true
+wrap_comments                       = true
