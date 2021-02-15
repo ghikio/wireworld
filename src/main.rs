@@ -4,6 +4,7 @@
 extern crate sdl2;
 
 use sdl2::rect;
+use sdl2::mouse;
 use sdl2::render;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -20,9 +21,11 @@ const CELLS_PER_ROW: usize = 16;
 const CELLS_PER_COL: usize = 16;
 
 /// Indicates the width that each cell must have
-const CELL_WIDTH:  u32 = SDL2_WIN_WIDTH  / CELLS_PER_ROW as u32;
+const CELL_WIDTH:  usize = SDL2_WIN_WIDTH as usize / CELLS_PER_ROW;
 /// Indicates the height that each cell must have
-const CELL_HEIGHT: u32 = SDL2_WIN_HEIGHT / CELLS_PER_COL as u32;
+const CELL_HEIGHT: usize = SDL2_WIN_HEIGHT as usize / CELLS_PER_COL;
+/// Indicates the border color of the cells
+const CELL_BORDER_COLOR: Color = Color::RGB(255, 255, 255);
 
 /// Describes the states in which a `Map` can be
 enum MapState
@@ -40,11 +43,11 @@ enum CellState
     /// The cell is dead or doesn't exist
     Empty,
     /// The cell is the head of an electron
-    ElectronHead(String),
+    ElectronHead,
     /// The cell is the tail of an electron
-    ElectronTail(String),
+    ElectronTail,
     /// The cell conducts electrons
-    Conductor(String),
+    Conductor,
 }
 
 /// Describes a Cell, a thing that can be in different states and
@@ -59,6 +62,15 @@ pub struct Cell {
 impl Cell {
     pub fn new() -> Self {
 	Cell { state: CellState::Empty }
+    }
+
+    pub fn get_fill_color(&self) -> Color {
+	match self.state {
+	    CellState::Empty        => Color::RGB(  0,   0,   0),
+	    CellState::ElectronHead => Color::RGB(  0,   0, 255),
+	    CellState::ElectronTail => Color::RGB(255,   0,   0),
+	    CellState::Conductor    => Color::RGB(255, 255,   0),
+	}
     }
 }
 
@@ -84,38 +96,37 @@ impl Map {
     }
 }
 
-pub fn render(canvas: &mut render::WindowCanvas)
+pub fn render(canvas: &mut render::WindowCanvas, map: &Map)
 {
     canvas.set_draw_color(Color::RGB(0, 0, 0));
     canvas.clear();
 
-    canvas.set_draw_color(Color::RGB(255, 255, 0));
+    for x in 0 .. CELLS_PER_ROW {
+	let xpos = (x * CELL_HEIGHT) as i32;
 
-    let init_width_per_cell = (0..SDL2_WIN_WIDTH)
-	.filter(|y| y % CELL_WIDTH == 0)
-	.take(CELLS_PER_ROW)
-	.collect::<Vec<u32>>();
+	for y in 0 .. CELLS_PER_COL {
+	    let ypos = (y * CELL_HEIGHT) as i32;
+	    let cell = &map.cells[x as usize * y as usize];
+	    let rect = rect::Rect::new(xpos, ypos, CELL_WIDTH as u32, CELL_HEIGHT as u32);
 
-    let init_height_per_cell = (0..SDL2_WIN_HEIGHT)
-	.filter(|x| x % CELL_HEIGHT == 0)
-	.take(CELLS_PER_COL)
-	.collect::<Vec<u32>>();
-
-    for y in &init_width_per_cell {
-	canvas.draw_line(rect::Point::new(0, *y as i32), rect::Point::new(SDL2_WIN_WIDTH as i32, *y as i32))
-	    .expect(&format!("couldn't draw line: ({},{}) -> ({},{})", 0, y, SDL2_WIN_WIDTH, y));
-    }
-
-    for x in &init_height_per_cell {
-	canvas.draw_line(rect::Point::new(*x as i32, 0), rect::Point::new(*x as i32, SDL2_WIN_HEIGHT as i32))
-	    .expect(&format!("couldn't draw line: ({},{}) -> ({},{})", x, 0, x, SDL2_WIN_HEIGHT));
+	    canvas.set_draw_color(cell.get_fill_color());
+	    canvas.fill_rect(rect).unwrap();
+	    canvas.set_draw_color(CELL_BORDER_COLOR);
+	    canvas.draw_rect(rect)
+		.expect(&format!("couldn't draw line: ({},{}) -> ({},{})", 0, y, SDL2_WIN_WIDTH, y));
+	}
     }
 
     // updates the screen with changes since the last call
     canvas.present();
 }
 
-pub fn run_sdl()
+pub fn mouse_down_event (x: i32, y: i32)
+{
+    println!("({:?},{:?})", x, y);
+}
+
+pub fn run_sdl(map: Map)
 {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -134,19 +145,21 @@ pub fn run_sdl()
                 Event::Quit { .. }
                 | Event::KeyDown { keycode: Some(Keycode::Escape),
                                  .. } => break 'running,
+		Event::MouseButtonDown { mouse_btn: mouse::MouseButton::Left, x, y, .. }
+		=> mouse_down_event(x, y),
                 _ => {}
             }
         }
         // The rest of the game loop goes here...
 
-	render(&mut canvas);
+	render(&mut canvas, &map);
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
 }
 
 pub fn main()
 {
-    let _map = Map::new();
+    let map = Map::new();
 
-    run_sdl()
+    run_sdl(map)
 }
