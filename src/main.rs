@@ -11,14 +11,17 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use std::time::Duration;
 
+/// Indicates the name of the main SDL2 window
 const SDL2_WIN_TITLE: &str = "Wireworld";
+/// Indicates the width size of the SDL2 window
 const SDL2_WIN_WIDTH:  u32 = 1024;
+/// Indicates the height size of the SDL2 window
 const SDL2_WIN_HEIGHT: u32 = 1024;
 
 /// Indicates how many cells must be rendered in a row
-const CELLS_PER_ROW: usize = 16;
+const CELLS_PER_ROW: usize = 8;
 /// Indicates how many cells must be rendered in a column
-const CELLS_PER_COL: usize = 16;
+const CELLS_PER_COL: usize = 8;
 
 /// Indicates the width that each cell must have
 const CELL_WIDTH:  usize = SDL2_WIN_WIDTH as usize / CELLS_PER_ROW;
@@ -28,6 +31,7 @@ const CELL_HEIGHT: usize = SDL2_WIN_HEIGHT as usize / CELLS_PER_COL;
 const CELL_BORDER_COLOR: Color = Color::RGB(255, 255, 255);
 
 /// Describes the states in which a `Map` can be
+#[derive(Clone, Copy)]
 enum MapState
 {
     /// Used to denote that the automaton ticks are paused
@@ -60,10 +64,13 @@ pub struct Cell {
 }
 
 impl Cell {
+    /// Initializes a new `Cell`
     pub fn new() -> Self {
 	Cell { state: CellState::Empty }
     }
 
+    /// Return the color that the cell must have depending on it's
+    /// current state
     pub fn get_fill_color(&self) -> Color {
 	match self.state {
 	    CellState::Empty        => Color::RGB(  0,   0,   0),
@@ -87,6 +94,7 @@ pub struct Map {
 }
 
 impl Map {
+    /// Initializes a new `Map`
     pub fn new() -> Self {
 	Map {
 	    cells: vec![ Cell::new(); CELLS_PER_ROW * CELLS_PER_COL ],
@@ -94,8 +102,19 @@ impl Map {
 	    mcols: CELLS_PER_COL,
 	    state: MapState::Running }
     }
+
+    /// Return a `Cell` as reference
+    pub fn get_cell (&self, x: usize, y: usize) -> Option<&Cell> {
+	self.cells.get((x * CELLS_PER_ROW) + y)
+    }
+
+    /// Return a `Cell` as a mutable reference
+    pub fn get_mut_cell (&mut self, x: usize, y: usize) -> Option<&mut Cell> {
+	self.cells.get_mut((x * CELLS_PER_ROW) + y)
+    }
 }
 
+/// Renders the cells and other elements into the SDL2 window
 pub fn render(canvas: &mut render::WindowCanvas, map: &Map)
 {
     canvas.set_draw_color(Color::RGB(0, 0, 0));
@@ -106,7 +125,7 @@ pub fn render(canvas: &mut render::WindowCanvas, map: &Map)
 
 	for y in 0 .. CELLS_PER_COL {
 	    let ypos = (y * CELL_HEIGHT) as i32;
-	    let cell = &map.cells[x as usize * y as usize];
+	    let cell = map.get_cell(x, y).unwrap();
 	    let rect = rect::Rect::new(xpos, ypos, CELL_WIDTH as u32, CELL_HEIGHT as u32);
 
 	    canvas.set_draw_color(cell.get_fill_color());
@@ -121,12 +140,22 @@ pub fn render(canvas: &mut render::WindowCanvas, map: &Map)
     canvas.present();
 }
 
-pub fn mouse_down_event (x: i32, y: i32)
+/// Handles the event of left mouse click and performs a modification in the
+/// `Cell`'s state at cursor pos.
+/// Turns it into a `Conductor` if it was `Empty`, otherwise makes it `Empty`.
+pub fn mouse_down_event (map: &mut Map, x: i32, y: i32)
 {
-    println!("({:?},{:?})", x, y);
+    let xind = x as usize / CELL_WIDTH;
+    let yind = y as usize / CELL_HEIGHT;
+    let cell = map.get_mut_cell(xind, yind).unwrap();
+
+    cell.state = match cell.state {
+	CellState::Empty => CellState::Conductor,
+	_                => CellState::Empty,
+    };
 }
 
-pub fn run_sdl(map: Map)
+pub fn run_sdl(map: &mut Map)
 {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -146,7 +175,7 @@ pub fn run_sdl(map: Map)
                 | Event::KeyDown { keycode: Some(Keycode::Escape),
                                  .. } => break 'running,
 		Event::MouseButtonDown { mouse_btn: mouse::MouseButton::Left, x, y, .. }
-		=> mouse_down_event(x, y),
+		=> mouse_down_event(map, x, y),
                 _ => {}
             }
         }
@@ -159,7 +188,7 @@ pub fn run_sdl(map: Map)
 
 pub fn main()
 {
-    let map = Map::new();
+    let mut map = Map::new();
 
-    run_sdl(map)
+    run_sdl(&mut map)
 }
