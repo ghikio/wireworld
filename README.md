@@ -4,7 +4,10 @@
 
 A implementation of the [wireworld](https://en.wikipedia.org/wiki/Wireworld) cellular automaton proposed by Brian Silverman in 1987. Written in [Rust](https://www.rust-lang.org/) using [SDL2](https://www.libsdl.org/index.php) as the multimedia engine.
 
-![2 clock generators sending electrons into an XOR gate in wireworld](https://raw.githubusercontent.com/ghikio/chip-8/master/.images/main.png)
+<p align="center">
+  <img width="450" height="450" src="https://raw.githubusercontent.com/ghikio/wireworld/master/.images/main.png"
+       alt="2 clock generators sending electrons into an XOR gate in wireworld">
+</p>
 
 ## Deps
 
