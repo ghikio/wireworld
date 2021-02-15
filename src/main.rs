@@ -1,6 +1,3 @@
-#![allow(dead_code)]
-#![allow(unused_imports)]
-
 extern crate sdl2;
 
 use sdl2::rect;
@@ -14,9 +11,9 @@ use std::time::Duration;
 /// Indicates the name of the main SDL2 window
 const SDL2_WIN_TITLE: &str = "Wireworld";
 /// Indicates the width size of the SDL2 window
-const SDL2_WIN_WIDTH:  u32 = 1024;
+const SDL2_WIN_WIDTH:  u32 = 516;
 /// Indicates the height size of the SDL2 window
-const SDL2_WIN_HEIGHT: u32 = 1024;
+const SDL2_WIN_HEIGHT: u32 = 516;
 
 /// Indicates how many cells must be rendered in a row
 const CELLS_PER_ROW: usize = 32;
@@ -28,14 +25,14 @@ const CELL_WIDTH:  usize = SDL2_WIN_WIDTH as usize / CELLS_PER_ROW;
 /// Indicates the height that each cell must have
 const CELL_HEIGHT: usize = SDL2_WIN_HEIGHT as usize / CELLS_PER_COL;
 /// Indicates the border color of the cells
-const CELL_BORDER_COLOR: Color = Color::RGB(255, 255, 255);
+const CELL_BORDER_COLOR: Color = Color::RGB(44, 44, 44);
 
 /// Describes the states in which a `Map` can be
 #[derive(Debug, Clone, Copy)]
 enum MapState
 {
     /// Used to denote that the automaton ticks are paused
-    Stopped,
+    _Stopped,
     /// Used to denote that the automaton ticks are running
     Running,
 }
@@ -74,9 +71,9 @@ impl Cell {
     pub fn get_fill_color(&self) -> Color {
 	match self.state {
 	    CellState::Empty        => Color::RGB(  0,   0,   0),
-	    CellState::ElectronHead => Color::RGB(  0,   0, 255),
-	    CellState::ElectronTail => Color::RGB(255,   0,   0),
-	    CellState::Conductor    => Color::RGB(255, 255,   0),
+	    CellState::ElectronHead => Color::RGB( 58, 126, 191),
+	    CellState::ElectronTail => Color::RGB(255,  26,  26),
+	    CellState::Conductor    => Color::RGB(255, 255,  85),
 	}
     }
 }
